@@ -91,13 +91,107 @@ typedef struct dsc_func_ptr {
 char * print_not_valid_type_for_debug_print(void * blank)
 {
 	UNUSED(blank);
-	printf("This is not a valid type to DEBUG_PRINT, please add your type/"
+	fprintf(stderr, "This is not a valid type to DEBUG_PRINT, please add your type/"
 			" library type to_string function wrapper to the"
 			" GET_CREATE_DEBUG_STRING_FUNC _Generic Selection in the"
-			"debug_print.h header.");
+			"debug_print.h header. Exiting program with non-zero exit code.\n");
 	exit(1);
 }
 
+char * debug_print_group_options_to_debug_string(void * options_v) {
+	debug_print_group_options * options = ((debug_print_group_options *)options_v);
+	char * buffer = malloc(200);
+	char mini_buffer[50] = {0};
+	strcpy(buffer, "debug_print_options:\n");
+	strcat(buffer, "    colorscheme:");
+
+	if (strcmp(options->colorscheme, FORE_BLACK) == 0)
+	{
+		strcat(buffer, "FORE_BLACK");
+	}
+	else if(strcmp(options->colorscheme, FORE_RED) == 0)
+	{
+		strcat(buffer, "FORE_RED");
+	}
+	else if(strcmp(options->colorscheme, FORE_YELLOW) == 0)
+	{
+		strcat(buffer, "FORE_YELLOW");
+	}
+	else if(strcmp(options->colorscheme, FORE_BLUE) == 0)
+	{
+		strcat(buffer, "FORE_BLUE");
+	}
+	else if(strcmp(options->colorscheme, FORE_MAGENTA) == 0)
+	{
+		strcat(buffer, "FORE_MAGENTA");
+	}
+	else if(strcmp(options->colorscheme, FORE_CYAN) == 0)
+	{
+		strcat(buffer, "FORE_CYAN");
+	}
+	else if(strcmp(options->colorscheme, FORE_WHITE) == 0)
+	{
+		strcat(buffer, "FORE_WHITE");
+	}
+	else if(strcmp(options->colorscheme, BACK_BLACK) == 0)
+	{
+		strcat(buffer, "FORE_BLACK");
+	}
+	else if(strcmp(options->colorscheme, BACK_RED) == 0)
+	{
+		strcat(buffer, "BACK_RED");
+	}
+	else if(strcmp(options->colorscheme, BACK_GREEN) == 0)
+	{
+		strcat(buffer, "BACK_GREEN");
+	}
+	else if(strcmp(options->colorscheme, BACK_YELLOW) == 0)
+	{
+		strcat(buffer, "BACK_YELLOW");
+	}
+	else if(strcmp(options->colorscheme, BACK_BLUE) == 0)
+	{
+		strcat(buffer, "BACK_BLUE");
+	}
+	else if(strcmp(options->colorscheme, BACK_MAGENTA) == 0)
+	{
+		strcat(buffer, "BACK_MAGENTA");
+	}
+	else if(strcmp(options->colorscheme, BACK_CYAN) == 0)
+	{
+		strcat(buffer, "BACK_CYAN");
+	}
+	else if(strcmp(options->colorscheme, BACK_WHITE) == 0)
+	{
+		strcat(buffer, "BACK_WHITE");
+	}
+
+	strcat(buffer, "\n    filestream: ");
+	if (options->filestream == stdout)
+	{
+		strcat(buffer, "stdout");
+	}
+	else if (options->filestream == stderr)
+	{
+		strcat(buffer, "stderr");
+	}
+	else
+	{
+		snprintf(mini_buffer, 50, "ptr to filestream:%p", options->filestream);
+		strcat(buffer, mini_buffer);
+	}
+
+	if (options->disabled)
+	{
+		strcat(buffer, "\ndisabled\n");
+	}
+	else
+	{
+		strcat(buffer, "\nenabled\n");
+	}
+
+	return buffer;
+}
 char * debug_print_options_to_debug_string(void * options_v) {
 	debug_print_options * options = ((debug_print_options *)options_v);
 	char * buffer = malloc(200);
@@ -186,20 +280,24 @@ char * debug_print_options_to_debug_string(void * options_v) {
 	return buffer;
 }
 
-#define TYPE_TO_PRINTF_SPECIFIER(x) _Generic(*(x), \
+#define TYPE_PTR_TO_PRINTF_SPECIFIER(x) _Generic((*x), \
 		const char *: "s",                       \
 		char *: "s",                             \
+		int: "d", \
 		float: "f" ,\
 		double: "f" ,\
 		char: "c",\
-int16_t: PRIi16, 	uint16_t: PRIu16,                                \
-int32_t: PRIi32, 	uint32_t: PRIu32,                                \
-int64_t: PRIi64, 	uint64_t: PRIu64,                                \
+int16_t: PRIi16, \
+uint16_t: PRIu16, \
+uint32_t: PRIu32,                                \
+int64_t: PRIi64, 	\
+uint64_t: PRIu64,                                \
 default: "")
 
 
 #define GET_CREATE_DEBUG_STRING_FUNC(x) _Generic((x), \
 		debug_print_options *: debug_print_options_to_debug_string, \
+		debug_print_group_options *: debug_print_group_options_to_debug_string, \
 		default: print_not_valid_type_for_debug_print)
 
 //Coerce string literal to char* and avoid segfault with (0,x) trick
@@ -214,14 +312,21 @@ default: "")
 		DEBUG_PRINT_PTR((#x), &_x, __VA_ARGS__);\
 	} while(0)
 
+//The repetition of debug_print_printf_specifier is to avoid repetition for custom types.
 #define DEBUG_PRINT_PTR(xstr, xp,...) \
-		_Generic((xp),                    \
-				debug_print_options *: DEBUG_PRINT_CUSTOM_TYPE(xstr, xp,  __VA_ARGS__),    \
-				default: DEBUG_PRINT_BASIC_TYPE(xstr, xp, __VA_ARGS__))
-
-#define DEBUG_PRINT_BASIC_TYPE(xstr, xp,...) \
-		debug_print_printf_specifier(xstr, (void *)xp, TYPE_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__,\
-				debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__})))
+		_Generic((*xp),                    \
+				const char *:  debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				char *:        debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				int:           debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				float:         debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				double:        debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				char:          debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				int16_t:       debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				uint16_t:      debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				uint32_t:      debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				int64_t:       debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				uint64_t:      debug_print_printf_specifier(xstr, (void *)xp, TYPE_PTR_TO_PRINTF_SPECIFIER(xp), __FILE__, __LINE__, _my_func__, debug_print_options_apply_group_options(&((debug_print_options){__VA_ARGS__}))),\
+				default: DEBUG_PRINT_CUSTOM_TYPE(xstr, xp,  __VA_ARGS__))
 
 #define DEBUG_PRINT_CUSTOM_TYPE(xstr, xp,...) \
 		debug_print_custom_to_debug_string(xstr, xp, &((dsc_func_ptr){GET_CREATE_DEBUG_STRING_FUNC(xp)}), __FILE__, __LINE__, _my_func__,\
@@ -261,8 +366,8 @@ void debug_print_custom_to_debug_string(const char *expr, void * data,
 	if(options->_private_is_group_disabled)
 	{
 		return;
-	}
 
+	}
 	if (!options->colorscheme[0]) {
 		strcpy(options->colorscheme, FORE_BLUE);
 	}
@@ -294,7 +399,7 @@ void debug_print_printf_specifier(const char *expr, void * data,
 	}
 	if(printf_specifier[0]=='\0')
 	{
-		printf("Empty printf_specifier. Should never be reached");
+		printf("Empty printf_specifier. Should never be reached. Exiting program with non-zero exit code.");
 		exit(1);
 	}
 	char format_string[100];

@@ -29,6 +29,7 @@ int main()
     DEBUG_PRINT(0+22);
     DEBUG_PRINT(s, .group=EXTRA_INFO_GROUP);
     DEBUG_PRINT(o, .colorscheme=FORE_GREEN, .group=RED_GROUP);
+    DEBUG_PRINT(debug_print_group_options_list[RED_GROUP], .group=RED_GROUP);
     DEBUG_PRINT(static_string_with_side_effect_only_once());
     fclose(a);
     return 0;
