@@ -34,27 +34,28 @@ but it probably doesn't matter as this is designed as a single dropin header
 (debug_print.h). 
 the API is
 DEBUG_PRINT(expr, ...) where ... is an optional comma seperated list of options in the format
-.option=value, (.option is one of the fields in debug_print_options)
-currently the only option/field is a colorscheme string for printing in color.
+.option=value, (where .option is one of the fields in debug_print_options)
+Specifically colorscheme, filestream and group. Colorsheme lets you overide color, filestream the
+output stream(defaults to stderr), and group the group index(defaults to 0/the first group 
+in the array) in debug_print_group_options_list. 
 
-examples:
+The group associated with the `DEBUG_PRINT_MESSAGE` or 
+`DEBUG_PRINT` controls the the default color and output stream if not overriden as well
+as whether or not the macro is disabled. This is useful for disabling/enabling groups of
+macros at once. If you do this I'd reccomend #define ing the group indexes.
+
+The default/0 group is set to stderr, blue and not disabled by default.
+
+example:
     
-    DEBUG_PRINT(i); 
-    //prints in Blue
-    //File: example.c | Line: 9 | Func: main
-    //i: 5
-    DEBUG_PRINT(0+22);
-	 //prints in Blue
-	 //File: example.c | Line: 10 | Func: main
-	 //0+22: 22
-    //prints in Blue
-    DEBUG_PRINT(s);
-    //File: example.c | Line: 11 | Func: main
-    //s: yo
-    //prints in Green
-    //    debug_print_options o = (struct debug_print_options){.colorscheme=FORE_BLUE};
-    DEBUG_PRINT(o, .colorscheme=FORE_GREEN);
-    //File: example.c | Line: 12 | Func: main
-    //o: debug_print_options:
-	 //    colorscheme:FORE_BLUE
+    DEBUG_PRINT(o, .colorscheme=FORE_GREEN, .filestream=stdout);
     
+    prints in Green to stdout
+    
+    File: example.c | Line: 30 | Func: main
+    o ->  debug_print_options:
+    colorscheme:FORE_BLUE
+    filestream: ptr to filestream:(nil)
+    group index:0
+
+For more examples see example.c 
